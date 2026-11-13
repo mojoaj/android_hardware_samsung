@@ -4,11 +4,13 @@
  */
 
 #include <android-base/file.h>
+#include <android-base/parseint.h>
 #include <android-base/strings.h>
 #include <livedisplay/samsung/SunlightEnhancement.h>
 
 #include <fstream>
 
+using android::base::ParseInt;
 using android::base::ReadFileToString;
 using android::base::Trim;
 using android::base::WriteStringToFile;
@@ -35,9 +37,16 @@ ndk::ScopedAStatus SunlightEnhancement::getEnabled(bool* _aidl_return) {
     if (!ReadFileToString(kSREPath, &tmp)) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
-    contents = std::stoi(Trim(tmp));
+    tmp = Trim(tmp);
 
-    *_aidl_return = contents == 1;
+    // Older kernels print the mode number. Newer Qualcomm mDNIe drivers (e.g. sm8650)
+    // print "Current outdoor Mode: OUTDOOR_OFF_MODE"; std::stoi threw on that and
+    // aborted the service, which took system_server down with it.
+    if (ParseInt(tmp, &contents)) {
+        *_aidl_return = contents == 1;
+    } else {
+        *_aidl_return = tmp.find("OUTDOOR_ON_MODE") != std::string::npos;
+    }
     return ndk::ScopedAStatus::ok();
 }
 
