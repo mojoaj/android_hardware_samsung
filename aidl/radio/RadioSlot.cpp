@@ -12,6 +12,7 @@
 #include <samsung_ril/structs.h>
 
 #include <algorithm>
+#include <chrono>
 
 #include "WakeLock.h"
 #include "config/RadioConfig.h"
@@ -27,6 +28,9 @@
 namespace aidl::android::hardware::radio::samsung {
 
 namespace {
+
+constexpr int kVendorConfigMaxRetries = 10;
+constexpr std::chrono::milliseconds kVendorConfigRetryDelay{1000};
 
 template <typename T>
 void publishService(const std::shared_ptr<T>& service, const std::string& instance) {
@@ -127,11 +131,30 @@ void RadioSlot::sendVendorConfiguration() {
             sizeof(configuration), [this](auto e, auto, auto) {
                 if (e == RIL_E_SUCCESS) {
                     LOG(INFO) << mInstance << ": vendor configuration sent";
+                    std::lock_guard lock(mVendorConfigMutex);
+                    mVendorConfigRetries = 0;
                     return;
                 }
                 LOG(ERROR) << mInstance << ": vendor configuration failed: " << e;
-                std::lock_guard lock(mVendorConfigMutex);
-                mVendorConfigPending = e == RIL_E_RADIO_NOT_AVAILABLE;
+                bool retry = false;
+                {
+                    std::lock_guard lock(mVendorConfigMutex);
+                    // Sent again on the next radio state change.
+                    mVendorConfigPending = e == RIL_E_RADIO_NOT_AVAILABLE;
+                    // Some blobs (One UI 7 on the Fold6) cancel the first request at a cold
+                    // boot and then never change radio state, leaving the slot without
+                    // service. Retry anything but an unsupported request a few times.
+                    if (e != RIL_E_RADIO_NOT_AVAILABLE && e != RIL_E_REQUEST_NOT_SUPPORTED &&
+                        mVendorConfigRetries < kVendorConfigMaxRetries) {
+                        mVendorConfigRetries++;
+                        mVendorConfigPending = true;
+                        retry = true;
+                    }
+                }
+                if (retry) {
+                    VendorRil::get().postDelayed([this] { sendVendorConfiguration(); },
+                                                 kVendorConfigRetryDelay);
+                }
             });
 }
 

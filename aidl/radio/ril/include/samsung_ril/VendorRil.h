@@ -42,6 +42,8 @@ class VendorRil {
     RIL_RadioState radioState(RIL_SOCKET_ID socket);
     // Runs a task on the timer thread, where requests can be sent.
     void post(std::function<void()> task);
+    // Runs task on the worker thread after delay.
+    void postDelayed(std::function<void()> task, std::chrono::milliseconds delay);
     const char* version();
 
     void setClientHalVersion(RIL_SOCKET_ID socket, int version);

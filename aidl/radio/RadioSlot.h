@@ -56,6 +56,7 @@ class RadioSlot {
     std::mutex mVendorConfigMutex;
     std::vector<std::pair<std::string, std::string>> mVendorConfig;
     bool mVendorConfigPending = false;
+    int mVendorConfigRetries = 0;
 
     std::shared_ptr<RadioConfig> mConfig;
     std::shared_ptr<RadioData> mData;

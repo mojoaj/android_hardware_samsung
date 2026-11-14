@@ -196,6 +196,10 @@ void VendorRil::post(std::function<void()> task) {
     schedule({std::chrono::steady_clock::now(), std::move(task)});
 }
 
+void VendorRil::postDelayed(std::function<void()> task, std::chrono::milliseconds delay) {
+    schedule({std::chrono::steady_clock::now() + delay, std::move(task)});
+}
+
 void VendorRil::schedule(Task task) {
     {
         std::lock_guard lock(mTimerMutex);
