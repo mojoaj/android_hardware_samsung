@@ -396,6 +396,11 @@ void Session::lockoutTimerExpired() {
     mIsLockoutTimerAborted = false;
 }
 
+void Session::notifyFingerLeave() {
+    LOG(DEBUG) << "notifyFingerLeave";
+    mCb->onAcquired(AcquiredInfo::VENDOR, SEM_FINGERPRINT_EVENT_FINGER_LEAVE);
+}
+
 void Session::notify(const fingerprint_msg_t* msg) {
     switch (msg->type) {
         case FINGERPRINT_ERROR: {

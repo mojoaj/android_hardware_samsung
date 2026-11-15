@@ -176,6 +176,14 @@ void Fingerprint::notify(const fingerprint_msg_t* msg) {
 
 void Fingerprint::handleEvent(int eventCode) {
     switch (eventCode) {
+        case SEM_FINGERPRINT_EVENT_FINGER_LEAVE: {
+            // Lets the framework wait for the finger to lift off the side key after a
+            // power-button lock instead of using a fixed delay.
+            if (mSession != nullptr && !mSession->isClosed()) {
+                mSession->notifyFingerLeave();
+            }
+            break;
+        }
         case SEM_FINGERPRINT_EVENT_GESTURE_SWIPE_DOWN:
         case SEM_FINGERPRINT_EVENT_GESTURE_SWIPE_UP: {
             if (!mSupportsGestures) return;

@@ -68,6 +68,8 @@ class Session : public BnSession {
     binder_status_t linkToDeath(AIBinder* binder);
     bool isClosed();
     void notify(const fingerprint_msg_t* msg);
+    // Reports the vendor's finger-leave event to the framework (side-key unlock guard).
+    void notifyFingerLeave();
     void onCaptureReady();
 
   private:
